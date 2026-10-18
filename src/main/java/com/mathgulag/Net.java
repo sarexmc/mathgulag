@@ -24,24 +24,24 @@ public class Net {
 
     /** Servidor -> cliente: abre/actualiza la pantalla de la pregunta. */
     public static class QuestionMsg {
-        final int a, b, left, total;
+        final int a, b, left, total, done;
 
-        public QuestionMsg(int a, int b, int left, int total) {
-            this.a = a; this.b = b; this.left = left; this.total = total;
+        public QuestionMsg(int a, int b, int left, int total, int done) {
+            this.a = a; this.b = b; this.left = left; this.total = total; this.done = done;
         }
 
         static void enc(QuestionMsg m, FriendlyByteBuf buf) {
-            buf.writeInt(m.a); buf.writeInt(m.b); buf.writeInt(m.left); buf.writeInt(m.total);
+            buf.writeInt(m.a); buf.writeInt(m.b); buf.writeInt(m.left); buf.writeInt(m.total); buf.writeInt(m.done);
         }
 
         static QuestionMsg dec(FriendlyByteBuf buf) {
-            return new QuestionMsg(buf.readInt(), buf.readInt(), buf.readInt(), buf.readInt());
+            return new QuestionMsg(buf.readInt(), buf.readInt(), buf.readInt(), buf.readInt(), buf.readInt());
         }
 
         static void handle(QuestionMsg m, Supplier<NetworkEvent.Context> s) {
             NetworkEvent.Context c = s.get();
-            final int a = m.a, b = m.b, l = m.left, t = m.total;
-            c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHooks.question(a, b, l, t)));
+            final int a = m.a, b = m.b, l = m.left, t = m.total, dn = m.done;
+            c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHooks.question(a, b, l, t, dn)));
             c.setPacketHandled(true);
         }
     }

@@ -20,10 +20,10 @@ import java.util.*;
 
 public class GameManager {
     static final String S = "\u00a7";
-    static boolean running;
+    static boolean running, solo;
     static final List<UUID> alive = new ArrayList<>();
     static UUID holder;
-    static int fuseLeft, fuseTotal, beepCd, a, b;
+    static int fuseLeft, fuseTotal, beepCd, a, b, progress;
     static final Map<UUID, ItemStack> helmets = new HashMap<>();
     static final Map<UUID, GameType> modes = new HashMap<>();
     static final Random R = new Random();
@@ -42,7 +42,8 @@ public class GameManager {
         if (running) { src.sendFailure(Component.literal("Ya hay una partida en marcha.")); return 0; }
         List<ServerPlayer> ps = new ArrayList<>();
         for (ServerPlayer p : s.getPlayerList().getPlayers()) if (!p.isSpectator()) ps.add(p);
-        if (ps.size() < 1) { src.sendFailure(Component.literal("Hacen falta 2 jugadores como minimo.")); return 0; }
+        if (ps.size() < 1) { src.sendFailure(Component.literal("No hay jugadores.")); return 0; }
+        solo = ps.size() == 1;
         alive.clear(); helmets.clear(); modes.clear();
         for (ServerPlayer p : ps) {
             alive.add(p.getUUID());
@@ -59,7 +60,7 @@ public class GameManager {
     }
 
     static void newFuse() {
-        fuseTotal = (15 + R.nextInt(25)) * 20;
+        fuseTotal = (30 + R.nextInt(30)) * 20;
         fuseLeft = fuseTotal;
         beepCd = 0;
     }
@@ -67,6 +68,7 @@ public class GameManager {
     static void newQuestion() { a = R.nextInt(10); b = R.nextInt(10); }
 
     static void giveAndAsk(MinecraftServer s) {
+        progress = 0;
         ServerPlayer p = s.getPlayerList().getPlayer(holder);
         if (p == null) return;
         p.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.TNT));
@@ -74,7 +76,7 @@ public class GameManager {
     }
 
     static void sendQuestion(ServerPlayer p) {
-        Net.CH.send(PacketDistributor.PLAYER.with(() -> p), new Net.QuestionMsg(a, b, fuseLeft, fuseTotal));
+        Net.CH.send(PacketDistributor.PLAYER.with(() -> p), new Net.QuestionMsg(a, b, fuseLeft, fuseTotal, progress));
     }
 
     static void removeBomb(ServerPlayer p) {
@@ -94,9 +96,11 @@ public class GameManager {
         MinecraftServer s = p.getServer();
         ServerLevel l = p.serverLevel();
         if (value == a * b) {
+            progress++;
+            l.playSound(null, p.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 1f, 1f);
+            if (progress < MathGulag.NEEDED) { newQuestion(); sendQuestion(p); return; }
             removeBomb(p);
             close(p);
-            l.playSound(null, p.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 1f, 1f);
             holder = alive.get((alive.indexOf(holder) + 1) % alive.size());
             newQuestion();
             giveAndAsk(s);
@@ -134,7 +138,14 @@ public class GameManager {
             l.playSound(null, p.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.5f, 1f);
             removeBomb(p);
             close(p);
-            p.setGameMode(GameType.SPECTATOR);
+            if (!solo) p.setGameMode(GameType.SPECTATOR);
+        }
+        if (solo) {
+            broadcast(s, S + "c" + S + "lBOOM! " + S + "r" + S + "7(modo prueba: sigues jugando, usa /mathgulag stop para terminar)");
+            newFuse();
+            newQuestion();
+            giveAndAsk(s);
+            return;
         }
         alive.remove(holder);
         broadcast(s, S + "c\u2620 " + name + " ha ido al gulag");

@@ -11,6 +11,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod(MathGulag.MODID)
 public class MathGulag {
     public static final String MODID = "mathgulag";
+    public static final int NEEDED = 2;
 
     public MathGulag() {
         Net.register();
