@@ -42,7 +42,7 @@ public class GameManager {
         if (running) { src.sendFailure(Component.literal("Ya hay una partida en marcha.")); return 0; }
         List<ServerPlayer> ps = new ArrayList<>();
         for (ServerPlayer p : s.getPlayerList().getPlayers()) if (!p.isSpectator()) ps.add(p);
-        if (ps.size() < 2) { src.sendFailure(Component.literal("Hacen falta 2 jugadores como minimo.")); return 0; }
+        if (ps.size() < 1) { src.sendFailure(Component.literal("Hacen falta 2 jugadores como minimo.")); return 0; }
         alive.clear(); helmets.clear(); modes.clear();
         for (ServerPlayer p : ps) {
             alive.add(p.getUUID());
